@@ -25,6 +25,7 @@ type (
 
 	userLoginModel struct {
 		gorm.Model
+		Id      int    `json:"id"`
 		Code    int    `json:"code"`
 		Token   string `json:"token"`
 		Message string `json:"message"`

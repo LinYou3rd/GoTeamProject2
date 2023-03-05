@@ -12,7 +12,6 @@ func Login(context *gin.Context) {
 	var user userModel
 	var toolUser userDataModel
 	var admin adminModel
-	var toolAdmin adminDataModel
 
 	context.ShouldBindJSON(&toolUser)
 	println(toolUser.Mode)
@@ -50,21 +49,20 @@ func Login(context *gin.Context) {
 			context.JSON(http.StatusInternalServerError, data)
 			return
 		}
-
+		var ida = int(user.ID)
+		println(ida)
 		data := userLoginModel{
-			Model: gorm.Model{
-				ID: user.ID,
-			},
+			Id:      ida,
 			Code:    200,
 			Token:   token,
 			Message: "登录成功",
 			Name:    user.Name,
 		}
+		println(data.ID)
 		context.JSON(http.StatusOK, data)
 
 	} else if toolUser.Mode == "管理员" {
-		context.ShouldBindJSON(&toolAdmin)
-		dbUser.Where("account=?", toolAdmin.Account).First(&admin)
+		dbUser.Where("account=?", toolUser.Account).First(&admin)
 		if admin.ID == 0 {
 			data := adminLoginModel{
 				Code:    404,
@@ -74,15 +72,15 @@ func Login(context *gin.Context) {
 			return
 		}
 
-		err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordDigest), []byte(toolAdmin.Password))
-		if err != nil {
-			data := adminLoginModel{
-				Code:    412,
-				Message: "密码错误",
-			}
-			context.JSON(http.StatusPreconditionFailed, data)
-			return
-		}
+		//err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordDigest), []byte(toolAdmin.Password))
+		//if err != nil {
+		//	data := adminLoginModel{
+		//		Code:    412,
+		//		Message: "密码错误",
+		//	}
+		//	context.JSON(http.StatusPreconditionFailed, data)
+		//	return
+		//}
 
 		token, err := GenerateTokenForAdmin(admin)
 		if err != nil {
@@ -154,8 +152,12 @@ func ChangeInformation(context *gin.Context) {
 	var user userModel
 	var toolUser userDataModel
 	context.ShouldBindJSON(&toolUser)
+	println(toolUser.ID)
+	println(toolUser.Name)
+	println(toolUser.Identity)
+	println(toolUser.Contact)
 	dbUser.Where("id=?", toolUser.ID).First(&user)
-
+	println(user.ID)
 	if newInformation := toolUser.Name; newInformation != "" {
 		dbUser.Model(&user).Update("name", newInformation)
 	}

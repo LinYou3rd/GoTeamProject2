@@ -10,7 +10,7 @@ func JWT() gin.HandlerFunc {
 	return func(context *gin.Context) {
 
 		var token string
-		context.ShouldBindJSON(&token)
+		token = context.Query("Token")
 		if token == "" {
 			data := tokenStature{
 				Code:    412,

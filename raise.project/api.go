@@ -9,13 +9,13 @@ import (
 
 func AddProject(context *gin.Context) {
 
-	var toolProject projectDataModel
-	context.ShouldBindJSON(&toolProject)
+	//var toolProject projectDataModel
+	var project projectModel
+	context.ShouldBindJSON(&project)
 	//怎么避免多个重复项目？以量取胜筹集资金
-	data := forSave(toolProject)
-	err := db.HMSet(toolProject.Title, data)
-
-	if err != nil {
+	data := forSave(project)
+	err := db.HMSet(project.Title, data)
+	if err.Err() != nil {
 		data := projectService{
 			Code:    500,
 			Message: "存储失败",
@@ -34,19 +34,16 @@ func AddProject(context *gin.Context) {
 
 func GetTarget(context *gin.Context) {
 	//用于展示界面获取项目具体信息、搜索项目返回数据
-	var toolProject projectDataModel
-	context.ShouldBindJSON(&toolProject)
-	var title = toolProject.Title
-	project, err := db.HGetAll(title).Result()
 
-	if err != nil {
-		data := projectService{
-			Code:    500,
-			Message: "获取项目信息失败",
-		}
-		context.JSON(http.StatusInternalServerError, data)
-		return
-	}
+	var title = context.Query("Title")
+	project, _ := db.HGetAll(title).Result()
+	//if project["pass"] == "0" {
+	//	data := projectService{
+	//		Code:    404,
+	//		Message: "该项目不存在或未过审",
+	//	}
+	//	context.JSON(http.StatusNotFound, data)
+	//}
 
 	information := forUse(project)
 	information.Title = title
@@ -71,8 +68,7 @@ func GetAll(context *gin.Context) {
 	}
 
 	for _, key := range keys {
-		var projects map[string]string
-		projects, _ = db.HGetAll(key).Result()
+		projects, _ := db.HGetAll(key).Result()
 		if projects["pass"] == "1" {
 			informations[i] = forUse(projects)
 			informations[i].Title = key
@@ -96,6 +92,7 @@ func Update(context *gin.Context) {
 
 	if mode == "管理员" {
 		pass := adminWork.Pass
+		println(pass)
 
 		if pass == "false" {
 			db.Del(title)
@@ -106,7 +103,9 @@ func Update(context *gin.Context) {
 
 	} else {
 		money, _ := strconv.ParseInt(adminWork.Money, 10, 64)
-		db.HIncrBy(title, "nowMoney", money)
+		data, _ := db.HGetAll(title).Result()
+		nowMoney, _ := strconv.ParseInt(data["nowMoney"], 10, 64)
+		db.HSet(title, "nowMoney", money+nowMoney)
 	}
 
 	information := projectService{
@@ -133,7 +132,7 @@ func DeleteProject(context *gin.Context) {
 func AdminWork(context *gin.Context) {
 	//获取未审核文件
 	var i = 0
-	var informations []projectService
+	informations := make([]projectService, 20)
 	keys, err := db.Keys("*").Result()
 
 	if err != nil {
@@ -146,10 +145,16 @@ func AdminWork(context *gin.Context) {
 	}
 
 	for _, key := range keys {
-		var projects map[string]string
-		projects, _ = db.HGetAll(key).Result()
-		if projects["haveAudit"] == "0" {
+		//println("--------------")
+		//println(key)
+		projects, _ := db.HGetAll(key).Result()
+		//println(projects["haveAudit"])
+		//println(projects["introduce"])
+		//println(projects["pass"])
+		if true {
 			informations[i] = forUse(projects)
+			informations[i].Title = key
+			println(informations[i].Introduce)
 			i++
 		}
 
